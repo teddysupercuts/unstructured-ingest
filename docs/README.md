@@ -5,7 +5,10 @@ The Unstructured open source library processes documents (artifacts) in a pipeli
 ## Basic Example of a Pipeline
 The most basic example of a pipeline starts with a local source connector, followed by a partitioner, and then ends with a local destination connector. Here is what the code to run this looks like:
 
->*** This is the type of Python file you'll want to run during development so that you can iterate on your connector.
+>*** This is the type of Python file you'll want to run during development so that you can iterate on your connector. 
+
+>***(Once your connector is in decent shape, an even BETTER file to run is a `.sh` ingest test file like this: https://github.com/Unstructured-IO/unstructured-ingest/blob/main/test_e2e/src/local.sh 
+See [instructions](#running-ingest-tests-locally) on running this.)
 
 `local.py`
 
@@ -89,9 +92,9 @@ If you look through the file you will notice these interfaces and functions
 
 * LocalUploader - Does the actual uploading
 
-* local_source_entry - Used to register the source connector here: [`unstructured_ingest/v2/processes/connectors/__init__.py`](https://github.com/Unstructured-IO/unstructured_ingest/blob/main/unstructured_ingest/v2/processes/connectors/__init__.py)
+* local_source_entry - Used to register the source connector here: [`unstructured_ingest/v2/processes/connectors/__init__.py`](https://github.com/Unstructured-IO/unstructured-ingest/blob/main/unstructured_ingest/v2/processes/connectors/__init__.py)
 
-* local_destination_entry - Used to register the destination connector here: [`unstructured_ingest/v2/processes/connectors/__init__.py`](https://github.com/Unstructured-IO/unstructured_ingest/blob/main/unstructured_ingest/v2/processes/connectors/__init__.py)
+* local_destination_entry - Used to register the destination connector here: [`unstructured_ingest/v2/processes/connectors/__init__.py`](https://github.com/Unstructured-IO/unstructured-ingest/blob/main/unstructured_ingest/v2/processes/connectors/__init__.py)
 
 
 
@@ -192,7 +195,7 @@ https://github.com/Unstructured-IO/unstructured-ingest/blob/main/unstructured_in
 
 * ChromaUploader - Connects to the Client. And uploads artifacts. Note that it does the minimum amount of processing possible to the artifacts before uploading. The Stager phase is responsible for preparing artifacts. Chroma wants artifacts in a dictionary of lists so we do have to create that in the Uploader since there is not a practical way to store that in a `.json` file.
 
-* chroma_destination_entry - Registers the Chroma destination connector with the pipeline. ([`unstructured_ingest/v2/processes/connectors/__init__.py`](https://github.com/Unstructured-IO/unstructured_ingest/blob/main/unstructured_ingest/v2/processes/connectors/__init__.py))
+* chroma_destination_entry - Registers the Chroma destination connector with the pipeline. ([`unstructured_ingest/v2/processes/connectors/__init__.py`](https://github.com/Unstructured-IO/unstructured-ingest/blob/main/unstructured_ingest/v2/processes/connectors/__init__.py))
 
 Note that the `chroma.py` file imports the official Chroma python package when it *creates* the client and not at the top of the file. This allows the classes to be *instantiated* without error,They will raise a runtime error though if the imports are missing.
 
@@ -313,7 +316,7 @@ To run this would require service credentials for Onedrive. And we can't run a D
 
 Let's look at the source connector file that it runs.
 
-https://github.com/Unstructured-IO/unstructured_ingest/blob/main/unstructured_ingest/v2/processes/connectors/onedrive.py
+https://github.com/Unstructured-IO/unstructured-ingest/blob/main/unstructured_ingest/v2/processes/connectors/onedrive.py
 
 If you look through the file you will notice these interfaces and functions
 
@@ -344,6 +347,19 @@ We need a test to run in the CI/CD. See the Chroma integration test section abov
 Building a connector is relatively straightforward, especially if there is an existing connector that closely matches the new one. For example, most of the vector destinations are quite similar.
 
 If you have any questions post in the public Slack channel `ask-for-help-open-source-library`
+
+## Connector PR Checklist
+
+
+
+## Running Ingest Tests Locally
+
+We will run this example test: https://github.com/Unstructured-IO/unstructured-ingest/blob/main/test_e2e/src/local.sh
+
+1) Make sure you are in your virtual environment and unstructured-ingest is installed.
+2) From the unstructured-ingest root run `./test_e2e/src/local.sh`
+
+When you build and check in your own `.sh` file make sure it is executable. `chmod 755 <file name>`
 
 ### Sequence Diagram
 
