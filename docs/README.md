@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
 ```
 
-Notice how the top part looks similar to the local connector running file. (link to local connector file above) But now we are adding a **chunker** and an **embedder**. Also note that there is a stager_config. This is where we prepare the document/artifact in a custom way before running the Uploader.
+Notice how the top part looks similar to the local connector running file. But now we are adding a **chunker** and an **embedder**. Also note that there is a stager_config. This is where we prepare the document/artifact in a custom way before running the Uploader.
 
 Let's run it.
 
@@ -197,9 +197,9 @@ https://github.com/Unstructured-IO/unstructured-ingest/blob/main/unstructured_in
 
 * chroma_destination_entry - Registers the Chroma destination connector with the pipeline. ([`unstructured_ingest/v2/processes/connectors/__init__.py`](https://github.com/Unstructured-IO/unstructured-ingest/blob/main/unstructured_ingest/v2/processes/connectors/__init__.py))
 
-Note that the `chroma.py` file imports the official Chroma python package when it *creates* the client and not at the top of the file. This allows the classes to be *instantiated* without error,They will raise a runtime error though if the imports are missing.
+Note that the `chroma.py` file imports the official Chroma python package when it *creates* the client and not at the top of the file. This allows the classes to be *instantiated* without error. They will raise a runtime error though if the imports are missing.
 
-Let's take a quick look at the `upload_stage` in  working directory:
+Let's take a quick look at the `upload_stage` in the working directory:
 ```
 chroma-working-dir
 - chunk
@@ -229,20 +229,16 @@ When you make a **new** destination connector you will need these files first:
 Once the connector is worked out with those files, you will need to add a few more files. 
 
 * `unstructured_ingest/v2/cli/cmds/your_connector.py`
-* Add that to: `unstructured_ingest/v2/cli/cmds/__init__.py`
 * Makefile
 * Manifest.in
 * setup.py
 * your_connector.in (to create the requirements file)
 * Documentation
-
-The CLI file. This allows the connector to be run via the command line. All the arguments for the connector need to be exposed.
-
-`unstructured_ingest/v2/cli/cmds/your_connector.py`
+* Test `.sh` file in `test_e2e` (see next)
 
 
-### Intrgration Test
-And lastly we need an executable .sh file that runs in CI/CD as an integration? test.
+### Integration Test
+And lastly we need an executable .sh file that runs in CI/CD as an integration test.
 
 `test_unstructured_ingest/dest/weaviate.sh` is a good example because it uses a Docker container to act as the Weaviate service. 
 
@@ -254,8 +250,8 @@ If you can run the integration test successfully then most of the files should b
 
 ## Building a Source Connector
 
-The source connector example we will use is `onedrive.py`. The S3 connector might be a simpler example, but it relies on the incredibly useful fsspec package, so it is not a good general example.
-https://filesystem-spec.readthedocs.io/en/latest/ 
+The source connector example we will use is `onedrive.py`. The S3 connector might be a simpler example, but it relies on the incredibly useful [fsspec package](https://filesystem-spec.readthedocs.io/en/latest/), so it is not a good general example.
+ 
 If your source connector can take advantage of fsspec, then S3 might be one to check out.
 
 
@@ -334,13 +330,13 @@ If you look through the file you will notice these interfaces and functions
 
 And those are the basics of a source connector. Each connector will have its specific problems to sort out. 
 
-### Additional Files
+### Source Connector Additional Files
 
-See the additional files above. (link to section)
+See the [additional files](#additional-files) above.
 
-### Intrgration Test
+### Source Connector Intrgration Test
 
-We need a test to run in the CI/CD. See the Chroma integration test section above. (link to section)
+We need a test to run in the CI/CD. See the Chroma [integration test](#integration-test) section above.
 
 ## Conclusion
 
@@ -348,7 +344,17 @@ Building a connector is relatively straightforward, especially if there is an ex
 
 If you have any questions post in the public Slack channel `ask-for-help-open-source-library`
 
-## Connector PR Checklist
+## Connector PR Checklist - WIP
+
+Source Connector
+- Are the secrets, creds in the AccessObject
+- Does the Indexer successfully have all the info it needs
+- Does the downloader name the file correctly.
+  - Is the file in a format that the partitioner likes
+  - Is all the appropriate metadata available
+- Is the `.sh` file created and executable
+- What does the help text look like.
+
 
 
 

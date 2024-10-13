@@ -12,6 +12,9 @@ PYTHONPATH=. python unstructured_ingest/v2/main.py --help
 
 The `main.py` file simply wraps the generated Click command created in `cli.py`.
 
+# LETS MAKE SURE THIS IS UPDATED.
+
+
 ### Source Commands
 All source commands are added as sub commands to the parent ingest Click group. This allows each command to map to
 different connectors with shared and unique parameters.
