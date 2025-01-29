@@ -139,7 +139,7 @@ class OnedriveIndexer(Indexer):
             raise SourceConnectionError(f"failed to validate connection: {e}")
 
     def list_objects_sync(self, folder: DriveItem, recursive: bool) -> list["DriveItem"]:
-        drive_items = folder.children.get().execute_query()
+        drive_items = folder.root.children.get().execute_query()
         files = [d for d in drive_items if d.is_file]
         if not recursive:
             return files
@@ -224,7 +224,15 @@ class OnedriveIndexer(Indexer):
 
         client = await asyncio.to_thread(self.connection_config.get_client)
         root = await self.get_root(client=client)
-        drive_items = await self.list_objects(folder=root, recursive=self.index_config.recursive)
+        sites = client.sites.get().execute_query()
+        site_ids = [site.id for site in sites]
+        site_id = site_ids[0]
+        site = client.sites[site_id].get().execute_query()
+        site_drive = site.drive.get().execute_query()
+        logger.info("@@@@@@@@@@@@@@@@@@ site")
+        logger.info(f"site_id: {site_id}")
+        # drive_items = await self.list_objects(folder=root, recursive=self.index_config.recursive)
+        drive_items = self.list_objects_sync(folder=site_drive, recursive=self.index_config.recursive)
 
         for drive_item in drive_items:
             file_data = await self.drive_item_to_file_data(drive_item=drive_item)
