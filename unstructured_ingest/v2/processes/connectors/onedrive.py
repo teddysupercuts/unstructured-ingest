@@ -142,6 +142,7 @@ class OnedriveIndexer(Indexer):
         ### this is a Drive not a DriveItem
         # getting the root gives the DriveItem
         # drive_items = folder.root.children.get().execute_query()
+        drive_items = folder.children.get().execute_query()
 
         #### problem is that we can't pass in the folder's drive then we just keep going.
 
@@ -151,8 +152,7 @@ class OnedriveIndexer(Indexer):
         # If it fails at root, try to get items from drive directly
         # if not drive_items:
         # drive_items = folder.items.filter("folder ne null or file ne null").get().execute_query()
-        drive_items = folder.items.filter("file ne null").get().execute_query()
-        # drive_items = folder.items.children.get().execute_query()
+        # drive_items = folder.items.filter("file ne null").get().execute_query()
         files = [d for d in drive_items if d.is_file]
         if not recursive:
             return files
@@ -164,12 +164,12 @@ class OnedriveIndexer(Indexer):
         for f in folders:
             # breakpoint()
 
-            drive_id = f.parent_reference.driveId
-            client = self.connection_config.get_client()
-            drive = client.drives[drive_id].get().execute_query()
+            # drive_id = f.parent_reference.driveId
+            # client = self.connection_config.get_client()
+            # drive = client.drives[drive_id].get().execute_query()
 
-            # files.extend(self.list_objects_sync(f, recursive))
-            files.extend(self.list_objects_sync(drive, recursive))
+            files.extend(self.list_objects_sync(f, recursive))
+            # files.extend(self.list_objects_sync(drive, recursive))
         return files
 
     async def list_objects(self, folder: "DriveItem", recursive: bool) -> list["DriveItem"]:
@@ -248,13 +248,23 @@ class OnedriveIndexer(Indexer):
         client = await asyncio.to_thread(self.connection_config.get_client)
         root = await self.get_root(client=client)
         sites = client.sites.get().execute_query()
+        logger.info("@@@@@@@@@@@@@@@@@@ sites")
+        logger.info(sites)
+        
         site_ids = [site.id for site in sites]
         site_id = site_ids[0]
         site = client.sites[site_id].get().execute_query()
-        site_drive = site.drive.get().execute_query()
         logger.info("@@@@@@@@@@@@@@@@@@ site")
+        logger.info(site)
+        site_drive = site.drive.get().execute_query()
+        logger.info("@@@@@@@@@@@@@@@@@@ site drive")
+        logger.info(site_drive)
+        logger.info("@@@@@@@@@@@@@@@@@@ site id")
         logger.info(f"site_id: {site_id}")
-        drive_items = await self.list_objects(folder=site_drive, recursive=self.index_config.recursive)
+        site_drive_item = site.drive.get().execute_query().root
+        logger.info("@@@@@@@@@@@@@@@@@@ site drive")
+        logger.info(site_drive_item)
+        drive_items = await self.list_objects(folder=site_drive_item, recursive=self.index_config.recursive)
         # drive_items = self.list_objects_sync(folder=site_drive, recursive=self.index_config.recursive)
 
         for drive_item in drive_items:
@@ -293,8 +303,26 @@ class OnedriveDownloader(Downloader):
         # root is a DriveItem
         cu = client.users[self.connection_config.user_pname].drive.get().execute_query()
         # cu is a Drive
-        breakpoint()
-        file = root.get_by_path(server_relative_path).get().execute_query()
+        sites = client.sites.get().execute_query()
+        logger.info("@@@@@@@@@@@@@@@@@@ sites")
+        logger.info(sites)
+        
+        site_ids = [site.id for site in sites]
+        site_id = site_ids[0]
+        site = client.sites[site_id].get().execute_query()
+        logger.info("@@@@@@@@@@@@@@@@@@ site")
+        logger.info(site)
+        site_drive = site.drive.get().execute_query()
+        logger.info("@@@@@@@@@@@@@@@@@@ site drive")
+        logger.info(site_drive)
+        logger.info("@@@@@@@@@@@@@@@@@@ site id")
+        logger.info(f"site_id: {site_id}")
+        site_drive_item = site.drive.get().execute_query().root
+        logger.info("@@@@@@@@@@@@@@@@@@ site drive")
+        logger.info(site_drive_item)
+        # breakpoint()
+        # file = root.get_by_path(server_relative_path).get().execute_query()
+        file = site_drive_item.get_by_path(server_relative_path).get().execute_query()
         # returns a driveItem
         if not file:
             raise FileNotFoundError(f"file not found: {server_relative_path}")
