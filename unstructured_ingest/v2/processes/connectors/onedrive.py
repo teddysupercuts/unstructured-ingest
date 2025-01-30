@@ -150,16 +150,19 @@ class OnedriveIndexer(Indexer):
         # drive_items = folder.root.children.get().execute_query()
         # If it fails at root, try to get items from drive directly
         # if not drive_items:
-        drive_items = folder.items.filter("folder ne null or file ne null").get().execute_query()
+        # drive_items = folder.items.filter("folder ne null or file ne null").get().execute_query()
+        drive_items = folder.items.filter("file ne null").get().execute_query()
         # drive_items = folder.items.children.get().execute_query()
         files = [d for d in drive_items if d.is_file]
         if not recursive:
             return files
 
         # breakpoint()
+        ### may not need folders since it does seem to be get everything. But this is bad if they don't want to be recursive
+        ### the filter should help though - it doesn't
         folders = [d for d in drive_items if d.is_folder]
         for f in folders:
-            breakpoint()
+            # breakpoint()
 
             drive_id = f.parent_reference.driveId
             client = self.connection_config.get_client()
@@ -285,10 +288,14 @@ class OnedriveDownloader(Downloader):
 
         server_relative_path = file_data.source_identifiers.fullpath
         client = self.connection_config.get_client()
+        #### this is the wrong root MAYBE
         root = client.users[self.connection_config.user_pname].drive.get().execute_query().root
+        # root is a DriveItem
         cu = client.users[self.connection_config.user_pname].drive.get().execute_query()
+        # cu is a Drive
         breakpoint()
         file = root.get_by_path(server_relative_path).get().execute_query()
+        # returns a driveItem
         if not file:
             raise FileNotFoundError(f"file not found: {server_relative_path}")
         return file
