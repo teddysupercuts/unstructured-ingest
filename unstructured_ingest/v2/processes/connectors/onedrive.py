@@ -138,15 +138,35 @@ class OnedriveIndexer(Indexer):
             logger.error(f"failed to validate connection: {e}", exc_info=True)
             raise SourceConnectionError(f"failed to validate connection: {e}")
 
-    def list_objects_sync(self, folder: DriveItem, recursive: bool) -> list["DriveItem"]:
-        drive_items = folder.root.children.get().execute_query()
+    def list_objects_sync(self, folder: Drive, recursive: bool) -> list["DriveItem"]:
+        ### this is a Drive not a DriveItem
+        # getting the root gives the DriveItem
+        # drive_items = folder.root.children.get().execute_query()
+
+        #### problem is that we can't pass in the folder's drive then we just keep going.
+
+        # we have trouble if we just go to the root all the time
+        # we need to get the children of the Drive
+        # drive_items = folder.root.children.get().execute_query()
+        # If it fails at root, try to get items from drive directly
+        # if not drive_items:
+        drive_items = folder.items.filter("folder ne null or file ne null").get().execute_query()
+        # drive_items = folder.items.children.get().execute_query()
         files = [d for d in drive_items if d.is_file]
         if not recursive:
             return files
 
+        # breakpoint()
         folders = [d for d in drive_items if d.is_folder]
         for f in folders:
-            files.extend(self.list_objects_sync(f, recursive))
+            breakpoint()
+
+            drive_id = f.parent_reference.driveId
+            client = self.connection_config.get_client()
+            drive = client.drives[drive_id].get().execute_query()
+
+            # files.extend(self.list_objects_sync(f, recursive))
+            files.extend(self.list_objects_sync(drive, recursive))
         return files
 
     async def list_objects(self, folder: "DriveItem", recursive: bool) -> list["DriveItem"]:
@@ -231,8 +251,8 @@ class OnedriveIndexer(Indexer):
         site_drive = site.drive.get().execute_query()
         logger.info("@@@@@@@@@@@@@@@@@@ site")
         logger.info(f"site_id: {site_id}")
-        # drive_items = await self.list_objects(folder=root, recursive=self.index_config.recursive)
-        drive_items = self.list_objects_sync(folder=site_drive, recursive=self.index_config.recursive)
+        drive_items = await self.list_objects(folder=site_drive, recursive=self.index_config.recursive)
+        # drive_items = self.list_objects_sync(folder=site_drive, recursive=self.index_config.recursive)
 
         for drive_item in drive_items:
             file_data = await self.drive_item_to_file_data(drive_item=drive_item)
@@ -256,6 +276,7 @@ class OnedriveDownloader(Downloader):
 
     @SourceConnectionNetworkError.wrap
     def _fetch_file(self, file_data: FileData):
+        # breakpoint()
         if file_data.source_identifiers is None or not file_data.source_identifiers.fullpath:
             raise ValueError(
                 f"file data doesn't have enough information to get "
@@ -265,6 +286,8 @@ class OnedriveDownloader(Downloader):
         server_relative_path = file_data.source_identifiers.fullpath
         client = self.connection_config.get_client()
         root = client.users[self.connection_config.user_pname].drive.get().execute_query().root
+        cu = client.users[self.connection_config.user_pname].drive.get().execute_query()
+        breakpoint()
         file = root.get_by_path(server_relative_path).get().execute_query()
         if not file:
             raise FileNotFoundError(f"file not found: {server_relative_path}")
@@ -280,6 +303,7 @@ class OnedriveDownloader(Downloader):
         try:
             file = self._fetch_file(file_data=file_data)
             fsize = file.get_property("size", 0)
+            # breakpoint()
             download_path = self.get_download_path(file_data=file_data)
             download_path.parent.mkdir(parents=True, exist_ok=True)
             logger.info(f"downloading {file_data.source_identifiers.fullpath} to {download_path}")
