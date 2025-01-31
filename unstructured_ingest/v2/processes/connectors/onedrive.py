@@ -51,6 +51,14 @@ class OnedriveAccessConfig(AccessConfig):
 
 class OnedriveConnectionConfig(ConnectionConfig):
     client_id: str = Field(description="Microsoft app client ID")
+    site: str = Field(
+        description="Sharepoint site url. Process either base url e.g \
+                    https://[tenant].sharepoint.com  or relative sites \
+                    https://[tenant].sharepoint.com/sites/<site_name>. \
+                    To process all sites within the tenant pass a site url as \
+                    https://[tenant]-admin.sharepoint.com.\
+                    This requires the app to be registered at a tenant level"
+    )
     user_pname: str = Field(description="User principal name, usually is your Azure AD email.")
     tenant: str = Field(
         repr=False, description="ID or domain name associated with your Azure AD instance"
@@ -238,7 +246,9 @@ class OnedriveIndexer(Indexer):
         # Offload the file data creation if it's not guaranteed async
         return await asyncio.to_thread(self.drive_item_to_file_data_sync, drive_item)
 
+    @requires_dependencies(["office365"], extras="onedrive")
     async def _run_async(self, **kwargs: Any) -> AsyncIterator[FileData]:
+        from office365.runtime.client_request_exception import ClientRequestException
         token_resp = await asyncio.to_thread(self.connection_config.get_token)
         if "error" in token_resp:
             raise SourceConnectionError(
@@ -246,24 +256,30 @@ class OnedriveIndexer(Indexer):
             )
 
         client = await asyncio.to_thread(self.connection_config.get_client)
-        root = await self.get_root(client=client)
-        sites = client.sites.get().execute_query()
-        logger.info("@@@@@@@@@@@@@@@@@@ sites")
-        logger.info(sites)
+        # root = await self.get_root(client=client)
+        # sites = client.sites.get().execute_query()
+        # logger.info("@@@@@@@@@@@@@@@@@@ sites")
+        # logger.info(sites)
         
-        site_ids = [site.id for site in sites]
-        site_id = site_ids[0]
-        site = client.sites[site_id].get().execute_query()
-        logger.info("@@@@@@@@@@@@@@@@@@ site")
-        logger.info(site)
-        site_drive = site.drive.get().execute_query()
-        logger.info("@@@@@@@@@@@@@@@@@@ site drive")
-        logger.info(site_drive)
-        logger.info("@@@@@@@@@@@@@@@@@@ site id")
-        logger.info(f"site_id: {site_id}")
-        site_drive_item = site.drive.get().execute_query().root
-        logger.info("@@@@@@@@@@@@@@@@@@ site drive")
-        logger.info(site_drive_item)
+        # site_ids = [site.id for site in sites]
+        # site_id = site_ids[0]
+        # site = client.sites[site_id].get().execute_query()
+        # logger.info("@@@@@@@@@@@@@@@@@@ site")
+        # logger.info(site)
+        # site_drive = site.drive.get().execute_query()
+        # logger.info("@@@@@@@@@@@@@@@@@@ site drive")
+        # logger.info(site_drive)
+        # logger.info("@@@@@@@@@@@@@@@@@@ site id")
+        # logger.info(f"site_id: {site_id}")
+        # site_drive_item = site.drive.get().execute_query().root
+        # logger.info("@@@@@@@@@@@@@@@@@@ site drive")
+        # logger.info(site_drive_item)
+
+        try:
+            site= client.sites.get_by_url(self.connection_config.site).get().execute_query()
+            site_drive_item = site.drive.get().execute_query().root
+        except ClientRequestException:
+            logger.info("Site not found")
         drive_items = await self.list_objects(folder=site_drive_item, recursive=self.index_config.recursive)
         # drive_items = self.list_objects_sync(folder=site_drive, recursive=self.index_config.recursive)
 
