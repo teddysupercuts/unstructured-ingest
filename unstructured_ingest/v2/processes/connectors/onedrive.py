@@ -132,6 +132,7 @@ def async_iterable_to_sync_iterable(iterator: AsyncIterator[T]) -> Iterator[T]:
 
 @dataclass
 class OnedriveIndexer(Indexer):
+    #### still need PATH
     connection_config: OnedriveConnectionConfig
     index_config: OnedriveIndexerConfig
 
@@ -420,23 +421,26 @@ class OnedriveUploader(Uploader):
                 raise SourceConnectionError(
                     "{} ({})".format(error, token_resp.get("error_description"))
                 )
-            drive = self.connection_config.get_drive()
-            root = drive.root
-            root_folder = self.upload_config.root_folder
-            folder = root.get_by_path(root_folder)
-            try:
-                folder.get().execute_query()
-            except ClientRequestException as e:
-                if e.message != "The resource could not be found.":
-                    raise e
-                folder = root.create_folder(root_folder).execute_query()
-                logger.info(f"successfully created folder: {folder.name}")
+            breakpoint()
+            # drive = self.connection_config.get_drive()
+            # root = drive.root
+            # root_folder = self.upload_config.root_folder
+            # folder = root.get_by_path(root_folder)
+            # try:
+            #     folder.get().execute_query()
+            # except ClientRequestException as e:
+            #     if e.message != "The resource could not be found.":
+            #         raise e
+            #     folder = root.create_folder(root_folder).execute_query()
+            #     logger.info(f"successfully created folder: {folder.name}")
         except Exception as e:
             logger.error(f"failed to validate connection: {e}", exc_info=True)
             raise SourceConnectionError(f"failed to validate connection: {e}")
 
     def run(self, path: Path, file_data: FileData, **kwargs: Any) -> None:
+        breakpoint()
         drive = self.connection_config.get_drive()
+        # Drive object
 
         # Use the remote_url from upload_config as the base destination folder
         base_destination_folder = self.upload_config.url
@@ -452,14 +456,19 @@ class OnedriveUploader(Uploader):
             destination_path = Path(base_destination_folder) / path.name
 
         destination_folder = destination_path.parent
+        # PosixPath('https:/unstructuredio.sharepoint.com/sites/utic-platform-test-destination')
+
         file_name = destination_path.name
+        # 'book-war-and-peace-1p.txt'
 
         # Convert destination folder to a string suitable for OneDrive API
         destination_folder_str = str(destination_folder).replace("\\", "/")
+        # 'https:/unstructuredio.sharepoint.com/sites/utic-platform-test-destination'
 
         # Resolve the destination folder in OneDrive, creating it if necessary
         try:
             # Attempt to get the folder
+            #### errors here
             folder = drive.root.get_by_path(destination_folder_str)
             folder.get().execute_query()
         except Exception:
