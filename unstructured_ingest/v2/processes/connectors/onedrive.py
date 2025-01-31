@@ -304,7 +304,9 @@ class OnedriveDownloader(Downloader):
     download_config: OnedriveDownloaderConfig
 
     @SourceConnectionNetworkError.wrap
+    @requires_dependencies(["office365"], extras="onedrive")
     def _fetch_file(self, file_data: FileData):
+        from office365.runtime.client_request_exception import ClientRequestException
         # breakpoint()
         if file_data.source_identifiers is None or not file_data.source_identifiers.fullpath:
             raise ValueError(
@@ -315,28 +317,33 @@ class OnedriveDownloader(Downloader):
         server_relative_path = file_data.source_identifiers.fullpath
         client = self.connection_config.get_client()
         #### this is the wrong root MAYBE
-        root = client.users[self.connection_config.user_pname].drive.get().execute_query().root
-        # root is a DriveItem
-        cu = client.users[self.connection_config.user_pname].drive.get().execute_query()
-        # cu is a Drive
-        sites = client.sites.get().execute_query()
-        logger.info("@@@@@@@@@@@@@@@@@@ sites")
-        logger.info(sites)
+        # root = client.users[self.connection_config.user_pname].drive.get().execute_query().root
+        # # root is a DriveItem
+        # cu = client.users[self.connection_config.user_pname].drive.get().execute_query()
+        # # cu is a Drive
+        # sites = client.sites.get().execute_query()
+        # logger.info("@@@@@@@@@@@@@@@@@@ sites")
+        # logger.info(sites)
         
-        site_ids = [site.id for site in sites]
-        site_id = site_ids[0]
-        site = client.sites[site_id].get().execute_query()
-        logger.info("@@@@@@@@@@@@@@@@@@ site")
-        logger.info(site)
-        site_drive = site.drive.get().execute_query()
-        logger.info("@@@@@@@@@@@@@@@@@@ site drive")
-        logger.info(site_drive)
-        logger.info("@@@@@@@@@@@@@@@@@@ site id")
-        logger.info(f"site_id: {site_id}")
-        site_drive_item = site.drive.get().execute_query().root
-        logger.info("@@@@@@@@@@@@@@@@@@ site drive")
-        logger.info(site_drive_item)
+        # site_ids = [site.id for site in sites]
+        # site_id = site_ids[0]
+        # site = client.sites[site_id].get().execute_query()
+        # logger.info("@@@@@@@@@@@@@@@@@@ site")
+        # logger.info(site)
+        # site_drive = site.drive.get().execute_query()
+        # logger.info("@@@@@@@@@@@@@@@@@@ site drive")
+        # logger.info(site_drive)
+        # logger.info("@@@@@@@@@@@@@@@@@@ site id")
+        # logger.info(f"site_id: {site_id}")
+        # site_drive_item = site.drive.get().execute_query().root
+        # logger.info("@@@@@@@@@@@@@@@@@@ site drive")
+        # logger.info(site_drive_item)
         # breakpoint()
+        try:
+            site= client.sites.get_by_url(self.connection_config.site).get().execute_query()
+            site_drive_item = site.drive.get().execute_query().root
+        except ClientRequestException:
+            logger.info("Site not found")
         # file = root.get_by_path(server_relative_path).get().execute_query()
         file = site_drive_item.get_by_path(server_relative_path).get().execute_query()
         # returns a driveItem
