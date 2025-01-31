@@ -421,7 +421,7 @@ class OnedriveUploader(Uploader):
                 raise SourceConnectionError(
                     "{} ({})".format(error, token_resp.get("error_description"))
                 )
-            breakpoint()
+            # breakpoint()
             # drive = self.connection_config.get_drive()
             # root = drive.root
             # root_folder = self.upload_config.root_folder
@@ -439,13 +439,22 @@ class OnedriveUploader(Uploader):
 
     def run(self, path: Path, file_data: FileData, **kwargs: Any) -> None:
         breakpoint()
-        drive = self.connection_config.get_drive()
+        # drive = self.connection_config.get_drive()
         # Drive object
 
+        client = self.connection_config.get_client()
+        try:
+            site= client.sites.get_by_url(self.connection_config.site).get().execute_query()
+            site_drive_item = site.drive.get().execute_query().root
+        except:
+            logger.info("Site not found")
         # Use the remote_url from upload_config as the base destination folder
         base_destination_folder = self.upload_config.url
+        # dest_folder
 
         # Use the file's relative path to maintain directory structure, if needed
+        # SourceIdentifiers(filename='book-war-and-peace-1p.txt', fullpath='/Users/potter/Documents/potter-testing/example-docs/book-war-and-peace-1p.txt', rel_path='book-war-and-peace-1p.txt')
+        # rel_path 'book-war-and-peace-1p.txt'
         if file_data.source_identifiers and file_data.source_identifiers.rel_path:
             # Combine the base destination folder with the file's relative path
             destination_path = Path(base_destination_folder) / Path(
@@ -454,9 +463,10 @@ class OnedriveUploader(Uploader):
         else:
             # If no relative path is provided, upload directly to the base destination folder
             destination_path = Path(base_destination_folder) / path.name
+            # path.name '0dcd76f32f82.json'
 
         destination_folder = destination_path.parent
-        # PosixPath('https:/unstructuredio.sharepoint.com/sites/utic-platform-test-destination')
+        # PosixPath('dest_folder')
 
         file_name = destination_path.name
         # 'book-war-and-peace-1p.txt'
@@ -466,30 +476,32 @@ class OnedriveUploader(Uploader):
         # 'https:/unstructuredio.sharepoint.com/sites/utic-platform-test-destination'
 
         # Resolve the destination folder in OneDrive, creating it if necessary
-        try:
-            # Attempt to get the folder
-            #### errors here
-            folder = drive.root.get_by_path(destination_folder_str)
-            folder.get().execute_query()
-        except Exception:
-            # Folder doesn't exist, create it recursively
-            current_folder = drive.root
-            for part in destination_folder.parts:
-                # Use filter to find the folder by name
-                folders = (
-                    current_folder.children.filter(f"name eq '{part}' and folder ne null")
-                    .get()
-                    .execute_query()
-                )
-                if folders:
-                    current_folder = folders[0]
-                else:
-                    # Folder doesn't exist, create it
-                    current_folder = current_folder.create_folder(part).execute_query()
-            folder = current_folder
+        # try:
+        #     # Attempt to get the folder
+        #     #### errors here
+        #     folder = drive.root.get_by_path(destination_folder_str)
+        #     # driveItem !!!
+        #     folder.get().execute_query()
+        # except Exception:
+        #     # Folder doesn't exist, create it recursively
+        #     current_folder = drive.root
+        #     for part in destination_folder.parts:
+        #         # Use filter to find the folder by name
+        #         folders = (
+        #             current_folder.children.filter(f"name eq '{part}' and folder ne null")
+        #             .get()
+        #             .execute_query()
+        #         )
+        #         if folders:
+        #             current_folder = folders[0]
+        #         else:
+        #             # Folder doesn't exist, create it
+        #             current_folder = current_folder.create_folder(part).execute_query()
+        #     folder = current_folder
 
         # Check the size of the file
         file_size = path.stat().st_size
+        # 14230
 
         if file_size < MAX_MB_SIZE:
             # Use simple upload for small files
@@ -497,7 +509,8 @@ class OnedriveUploader(Uploader):
                 content = local_file.read()
                 logger.info(f"Uploading {path} to {destination_path} using simple upload")
                 try:
-                    uploaded_file = folder.upload(file_name, content).execute_query()
+                    # uploaded_file = folder.upload(file_name, content).execute_query()
+                    uploaded_file = site_drive_item.upload(file_name, content).execute_query()
                     if not uploaded_file or uploaded_file.name != file_name:
                         raise DestinationConnectionError(f"Upload failed for file '{file_name}'")
                     # Log details about the uploaded file
@@ -512,7 +525,8 @@ class OnedriveUploader(Uploader):
         else:
             # Use resumable upload for large files
             destination_fullpath = f"{destination_folder_str}/{file_name}"
-            destination_drive_item = drive.root.item_with_path(destination_fullpath)
+            # destination_drive_item = drive.root.item_with_path(destination_fullpath)
+            destination_drive_item = site_drive_item.root.item_with_path(destination_fullpath)
 
             logger.info(f"Uploading {path} to {destination_fullpath} using resumable upload")
             try:
