@@ -88,11 +88,40 @@ class OnedriveConnectionConfig(ConnectionConfig):
             )
         return token
 
+    @requires_dependencies(["msal"], extras="onedrive")
+    def get_token_from_username_password(self):
+        from msal import PublicClientApplication
+
+        authority_url = f'https://login.microsoftonline.com/{self.tenant}'
+    
+        app = PublicClientApplication(
+            client_id=self.client_id,
+            authority=authority_url
+        )
+        breakpoint()
+        username="USERNAME"
+        password="PASSWORD"
+
+        result = app.acquire_token_by_username_password(
+            username=username,
+            password=password,
+            scopes=["https://graph.microsoft.com/.default"]
+        )
+        breakpoint()
+        
+        if "access_token" in result:
+            return result["access_token"]
+        else:
+            print(f"Error: {result.get('error')}")
+            print(f"Error description: {result.get('error_description')}")
+            return None
+
     @requires_dependencies(["office365"], extras="onedrive")
     def get_client(self) -> "GraphClient":
         from office365.graph_client import GraphClient
 
-        client = GraphClient(self.get_token)
+        # client = GraphClient(self.get_token)
+        client = GraphClient(self.get_token_from_username_password)
         return client
 
 
@@ -109,7 +138,8 @@ class OnedriveIndexer(Indexer):
 
     def precheck(self) -> None:
         try:
-            token_resp: dict = self.connection_config.get_token()
+            # token_resp: dict = self.connection_config.get_token()
+            token_resp: dict = self.connection_config.get_token_from_username_password()
             if error := token_resp.get("error"):
                 raise SourceConnectionError(
                     "{} ({})".format(error, token_resp.get("error_description"))
