@@ -91,6 +91,8 @@ class OnedriveConnectionConfig(ConnectionConfig):
     @requires_dependencies(["msal"], extras="onedrive")
     def get_token_from_username_password(self):
         from msal import PublicClientApplication
+        # also potentially https://msal-python.readthedocs.io/en/latest/#msal.ClientApplication.acquire_token_by_username_password
+        # https://learn.microsoft.com/en-us/entra/identity-platform/msal-authentication-flows#constraints-for-ropc
 
         authority_url = f'https://login.microsoftonline.com/{self.tenant}'
     
